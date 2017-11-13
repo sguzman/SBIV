@@ -31,6 +31,13 @@ const intervalTime = 5000;
 let since = 0;
 const tweets = [];
 
+app.get('/tweets', function (req, res) {
+  const threshold = req.query.since || 0;
+  const fTweets = tweets.filter(s => s.id > threshold);
+  const strArr = JSON.stringify(fTweets);
+  res.send(`{"tweets": ${strArr}}`);
+});
+
 const initQuery$ = since => rxjs.Observable.fromPromise(client.get('search/tweets', {since_id: since, q: 'from:sbcfiredispatch',count: "100"}));
 const timer$ = rxjs.Observable.interval(intervalTime);
 timer$.do(s => console.log(`Since is ${since}`))
@@ -38,14 +45,24 @@ timer$.do(s => console.log(`Since is ${since}`))
     .do(s => since = s.search_metadata.max_id)
     .map(s => s.statuses)
     .map(s => s.reverse())
-    .map (s => s.map(t => ({id: t.id, text: t.text})))
+    .map(s => s.map(t => ({id: t.id, text: t.text})))
+    .map(s => {
+      if (s.length === 1) {
+        if (s[0].id === since) {
+          return [];
+        } else {
+          return s;
+        }
+      } else {
+        return s;
+      }
+    })
     .do(s => {
-      _.tail(s).forEach(t => tweets.push(t));
-      if (s.length === 100 || s[0].id !== since) tweets.push(_.head(s));
+      s.forEach(t => tweets.push(t))
     })
     .subscribe(
       s => {
-        console.log('Received another batch of tweets');
+        console.log(`Received another batch of tweets of ${s.length} tweets`);
       },
       err => console.error(err),
       () => console.log('Should never finish')
