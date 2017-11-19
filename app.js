@@ -30,6 +30,9 @@ app.get('/tweets', function (req, res) {
   const threshold = req.query.since || 0;
   const fTweets = tweets.filter(s => s.id > threshold);
   const strArr = JSON.stringify(fTweets);
+
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   res.send(`{"tweets": ${strArr}}`);
 });
 
