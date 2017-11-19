@@ -1,8 +1,6 @@
 const express = require('express');
 const path = require('path');
 const logger = require('morgan');
-const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
 const rxjs = require('rxjs');
 const Twit = require('twitter');
 const fs = require('fs');
@@ -22,9 +20,6 @@ const app = express();
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(logger('combined'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
 //app.use(express.static(path.join(__dirname, 'public')));
 
 const intervalTime = 5000;
