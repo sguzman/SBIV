@@ -40,29 +40,14 @@ app.get('/tweets', function (req, res) {
 
 const initQuery$ = since => rxjs.Observable.fromPromise(client.get('search/tweets', {since_id: since, q: 'from:sbcfiredispatch',count: "100"}));
 const timer$ = rxjs.Observable.interval(intervalTime);
-timer$.do(s => console.log(`Since is ${since}`))
-    .flatMap(s => initQuery$(since))
-    .do(s => since = s.search_metadata.max_id)
-    .map(s => s.statuses)
-    .map(s => s.reverse())
-    .map(s => s.map(t => ({id: t.id, text: t.text})))
-    .map(s => {
-      if (s.length === 1) {
-        if (s[0].id === since) {
-          return [];
-        } else {
-          return s;
-        }
-      } else {
-        return s;
-      }
-    })
-    .do(s => {
-      s.forEach(t => tweets.push(t))
-    })
+timer$.flatMap(s => initQuery$(since))
+    .filter(s => s.statuses.length !== 0)
+    .filter(s => s.statuses.length !== 1 || s.statuses[0].id > since)
+    .map(s => _.sortBy(s.statuses, 'id'))
     .subscribe(
       s => {
-        console.log(`Received another batch of tweets of ${s.length} tweets`);
+        s.map(t => ({id: t.id, text: t.text, date: t.created_at})).forEach(t => tweets.push(t));
+        since = s[s.length - 1].id;
       },
       err => console.error(err),
       () => console.log('Should never finish')
