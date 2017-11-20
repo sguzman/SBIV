@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const logger = require('morgan');
 const rxjs = require('rxjs');
 const Twit = require('twitter');
@@ -16,36 +15,33 @@ const client = new Twit({
 });
 
 const app = express();
-
-app.set('views', path.join(__dirname, 'views'));
-
 app.use(logger('combined'));
-//app.use(express.static(path.join(__dirname, 'public')));
 
-const intervalTime = 5000;
-let since = 0;
-const tweets = [];
+const get$ = new rxjs.Subject();
 
 app.get('/tweets', function (req, res) {
   const threshold = req.query.since || 0;
-  const fTweets = tweets.filter(s => s.id > threshold);
-  const strArr = JSON.stringify(fTweets);
-
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  res.send(`{"tweets": ${strArr}}`);
+  get$.next({res: res, since_id: threshold});
 });
 
-const initQuery$ = since => rxjs.Observable.fromPromise(client.get('search/tweets', {since_id: since, q: 'from:sbcfiredispatch',count: "100"}));
-const timer$ = rxjs.Observable.interval(intervalTime);
-timer$.flatMap(s => initQuery$(since))
-    .filter(s => s.statuses.length !== 0)
-    .filter(s => s.statuses.length !== 1 || s.statuses[0].id > since)
-    .map(s => _.sortBy(s.statuses, 'id'))
+const initQuery$ = since => {
+  return rxjs.Observable.forkJoin(
+      rxjs.Observable.fromPromise(client.get('search/tweets', {since_id: since['since_id'], q: 'from:sbcfiredispatch',count: "100"})),
+      rxjs.Observable.of(since['res'])
+  )
+};
+get$.flatMap(since => initQuery$(since))
     .subscribe(
-      s => {
-        s.map(t => ({id: t.id, text: t.text, date: t.created_at})).forEach(t => tweets.push(t));
-        since = s[s.length - 1].id;
+      obj => {
+        const s = obj[0].statuses;
+        const res = obj[1];
+
+        console.log(`Received ${s.length}`);
+        const tweets = s.map(t => ({id: t.id, text: t.text, date: t.created_at}));
+
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        res.send(JSON.stringify({tweets: tweets}));
       },
       err => console.error(err),
       () => console.log('Should never finish')
