@@ -17,11 +17,17 @@ const client = new Twit({
 const app = express();
 app.use(logger('combined'));
 
-const get$ = new rxjs.Subject();
+const tweets = new rxjs.Subject();
+const get = new rxjs.Subject();
 
 app.get('/tweets', function (req, res) {
   const threshold = req.query.since || 0;
-  get$.next({res: res, since_id: threshold});
+  tweets.next({res: res, since_id: threshold});
+});
+
+app.get('/', function (req, res) {
+  res.statusCode = 404;
+  res.send('{"msg": :"go away!"}')
 });
 
 const initQuery$ = since => {
@@ -30,7 +36,7 @@ const initQuery$ = since => {
       rxjs.Observable.of(since['res'])
   )
 };
-get$.flatMap(since => initQuery$(since))
+tweets.flatMap(since => initQuery$(since))
     .subscribe(
       obj => {
         const s = obj[0].statuses;
