@@ -1,10 +1,20 @@
 {
   "name": "sbiv",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "A simple twitter relay to get tweets",
+  "repository": "https://github.com/sguzman/SBIV",
   "private": true,
   "scripts": {
     "start": "node ./bin/www"
   },
+  "author": "Salvador Guzman",
+  "contributors": [
+    {
+      "name": "Salvador Guzman",
+      "email": "guzmansalv@gmail.com"
+    }
+  ],
+  "licence": "Unlicense",
   "dependencies": {
     "express": "~4.15.5",
     "lodash": "^4.17.4",
